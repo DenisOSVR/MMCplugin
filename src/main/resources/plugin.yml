@@ -1,0 +1,6 @@
+name: MyFirstPlugin
+version: '${project.version}'
+main: ga.denis.myfirstplugin.MyFirstPlugin
+api-version: 1.19
+authors: [ DenisOS ]
+description: First plugin
