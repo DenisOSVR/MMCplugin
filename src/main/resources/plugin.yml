@@ -1,6 +1,11 @@
-name: MyFirstPlugin
+name: MMCplugin
 version: '${project.version}'
-main: ga.denis.myfirstplugin.MyFirstPlugin
+main: ga.denis.mmcplugin.MMCplugin
 api-version: 1.19
 authors: [ DenisOS ]
-description: First plugin
+description: Main MMC plugin
+commands:
+  zone:
+    description: Changes skywars zone size
+    usage: /<command> [size]
+    permission: mmcplugin.use
