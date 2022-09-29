@@ -1,10 +1,12 @@
 package ga.denis.mmcplugin;
 
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
+import com.sun.org.apache.xerces.internal.xs.StringList;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,19 +15,32 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collection;
+import java.util.List;
 
 public final class MMCplugin extends JavaPlugin implements Listener, CommandExecutor {
 
     boolean zoneOn = false;
     int zoneSize = 100;
     byte tickCount = 1;
+    FileConfiguration config;
+    Location[] checkpoints;
 
     @Override
     public void onEnable() {
         // Plugin startup logic
         System.out.println("The plugin has started!");
+        config = this.getConfig();
+        config.addDefault("zoneSize", 100);
+        config.addDefault("zoneOn", false);
+        config.addDefault("checkpoints", new Location[0]);
+        config.options().copyDefaults(true);
+        saveConfig();
+        zoneOn = config.getBoolean("zoneOn");
+        zoneSize = config.getInt("zoneSize");
+        checkpoints = config.getObject("checkpoints", Location[].class);
 
         this.getCommand("skywars").setExecutor(this);
+        this.getCommand("parkour").setExecutor(this);
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -35,13 +50,15 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             if (args[0].equals("zone")) {
                 if (Integer.parseInt(args[1]) == 0) {
                     zoneOn = false;
+                    config.set("zoneOn", false);
                     sender.sendPlainMessage("Zone has been disabled!");
                     return true;
                 } else {
                     zoneSize = Integer.parseInt(args[1]);
                     sender.sendPlainMessage("Zone size has been set to " + zoneSize);
                     zoneOn = true;
-
+                    config.set("zoneOn", true);
+                    config.set("zoneSize", zoneSize);
                     Collection<Player> hraci = (Collection<Player>) Bukkit.getOnlinePlayers();
                     for (Player hrac : hraci) {
                         hit(hrac);
@@ -50,6 +67,8 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     return true;
                 }
             }
+        } else if (command.getName().equals("parkour")) {
+
         }
         return false;
     }
@@ -126,5 +145,6 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        saveConfig();
     }
 }
