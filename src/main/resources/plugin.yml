@@ -9,3 +9,7 @@ commands:
     description: Controls skywars minigame
     usage: /<command> [action] [parameters]
     permission: mmcplugin.use
+  parkour:
+    description: Controls parkour minigame
+    usage: /<command> [action] [parameters]
+    permission: mmcplugin.use

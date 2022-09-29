@@ -1,7 +1,6 @@
 package ga.denis.mmcplugin;
 
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
-import com.sun.org.apache.xerces.internal.xs.StringList;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -21,9 +20,12 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
 
     boolean zoneOn = false;
     int zoneSize = 100;
-    byte tickCount = 1;
+    byte tickCountSkywars = 1;
+    byte tickCountParkour = 1;
     FileConfiguration config;
     Location[] checkpoints;
+    boolean showCheckpoints;
+    List cordsList;
 
     @Override
     public void onEnable() {
@@ -32,12 +34,19 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         config = this.getConfig();
         config.addDefault("zoneSize", 100);
         config.addDefault("zoneOn", false);
-        config.addDefault("checkpoints", new Location[0]);
+        config.addDefault("checkpoints", new List[1]);
+        config.addDefault("showCheckpoints", false);
         config.options().copyDefaults(true);
-        saveConfig();
+        saveDefaultConfig();
         zoneOn = config.getBoolean("zoneOn");
         zoneSize = config.getInt("zoneSize");
-        checkpoints = config.getObject("checkpoints", Location[].class);
+        cordsList = config.getStringList("checkpoints");
+        checkpoints = new Location[cordsList.size()];
+        for (int i = 0; i < cordsList.size(); i++) {
+            String[] xyz = ((String) cordsList.get(i)).split(";");
+            checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Integer.parseInt(xyz[0]),Integer.parseInt(xyz[1]),Integer.parseInt(xyz[2]));
+        }
+        showCheckpoints = config.getBoolean("showCheckpoints");
 
         this.getCommand("skywars").setExecutor(this);
         this.getCommand("parkour").setExecutor(this);
@@ -67,8 +76,37 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     return true;
                 }
             }
-        } else if (command.getName().equals("parkour")) {
+        } else if (command.getName().equals("parkour") && sender instanceof Player) {
+            if (args[0].equals("add")) {
+                Player hrac = (Player) sender;
+                config.set("checkpoints", config.getStringList("checkpoints").add(hrac.getLocation().getX() + ";" + hrac.getLocation().getY() + ";" + hrac.getLocation().getZ()));
+                saveConfig();
+                cordsList = config.getStringList("checkpoints");
+                checkpoints = new Location[cordsList.size()];
+                for (int i = 0; i < cordsList.size(); i++) {
+                    String[] xyz = ((String) cordsList.get(i)).split(";");
+                    checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Integer.parseInt(xyz[0]),Integer.parseInt(xyz[1]),Integer.parseInt(xyz[2]));
+                }
 
+                sender.sendPlainMessage("Checkpoint added!");
+                return true;
+            }
+
+            if (args[0].equals("list")) {
+                for (int i = 0; i < checkpoints.length; i++) {
+                    sender.sendPlainMessage("ID: " + i + " X: " + checkpoints[i].getX() + " Y: " + checkpoints[i].getY() + " Z: " + checkpoints[i].getZ());
+                }
+                return true;
+            }
+
+            if (args[0].equals("show")) {
+                if (showCheckpoints) {
+                    showCheckpoints = false;
+                } else {
+                    showCheckpoints = true;
+                }
+                return true;
+            }
         }
         return false;
     }
@@ -82,8 +120,8 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
 //            world.spawnParticle(Particle.REDSTONE, new Location(world,zoneSize,50,0), 50, dustOptions);
 //            particle.location(world, zoneSize, 50, 0);
 //            particle.allPlayers();
-            if (tickCount == 20) {
-                tickCount = 1;
+            if (tickCountSkywars == 20) {
+                tickCountSkywars = 1;
                 World world = Bukkit.getWorld("skywars");
                 for (int j = 43; j <= 73 ; j += 5) {
                     for (double i = 0; i < 2; i += (Math.max(0.01 * (5 - (0.05 * zoneSize)),0.01))) {
@@ -96,7 +134,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     }
                 }
             } else {
-                tickCount++;
+                tickCountSkywars++;
             }
         }
     }
@@ -123,6 +161,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     @EventHandler
     public void onTickStart(ServerTickStartEvent event) {
         zone();
+        showCheck();
         Collection<Player> hraci = (Collection<Player>) Bukkit.getOnlinePlayers();
         for (Player hrac : hraci) {
             if (hrac.getScoreboardTags().contains("hit")) {
@@ -131,6 +170,23 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 } else {
                     hrac.damage(3);
                 }
+            }
+        }
+    }
+
+    public void showCheck() {
+        if (showCheckpoints) {
+            if (tickCountParkour == 20) {
+                tickCountParkour = 1;
+                Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 0, 255), 0.5F);
+                World world = Bukkit.getWorld("parkour");
+                for (Location location : checkpoints) {
+                    Location cords = location;
+                    cords.add(0,1.5,0);
+                    world.spawnParticle(Particle.REDSTONE, cords, 50, 0.5, 0, 0.5, dustOptions);
+                }
+            } else {
+                tickCountParkour++;
             }
         }
     }
