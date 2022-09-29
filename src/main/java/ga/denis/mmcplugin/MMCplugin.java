@@ -14,7 +14,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collection;
-import java.util.List;
 
 public final class MMCplugin extends JavaPlugin implements Listener, CommandExecutor {
 
@@ -25,7 +24,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     FileConfiguration config;
     Location[] checkpoints;
     boolean showCheckpoints;
-    List cordsList;
+    String cordsString;
 
     @Override
     public void onEnable() {
@@ -34,18 +33,22 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         config = this.getConfig();
         config.addDefault("zoneSize", 100);
         config.addDefault("zoneOn", false);
-        config.addDefault("checkpoints", new List[1]);
+        config.addDefault("checkpoints", "");
         config.addDefault("showCheckpoints", false);
         config.options().copyDefaults(true);
         saveDefaultConfig();
         zoneOn = config.getBoolean("zoneOn");
         zoneSize = config.getInt("zoneSize");
-        cordsList = config.getStringList("checkpoints");
-        checkpoints = new Location[cordsList.size()];
-        for (int i = 0; i < cordsList.size(); i++) {
-            String[] xyz = ((String) cordsList.get(i)).split(";");
-            checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Integer.parseInt(xyz[0]),Integer.parseInt(xyz[1]),Integer.parseInt(xyz[2]));
+        cordsString = config.getString("checkpoints");
+        if (!cordsString.equals("")) {
+            String[] cordsArray = cordsString.split(";");
+            checkpoints = new Location[cordsArray.length];
+            for (int i = 0; i < cordsArray.length; i++) {
+                String[] xyz = cordsArray[i].split(",");
+                checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Double.parseDouble(xyz[0]),Double.parseDouble(xyz[1]),Double.parseDouble(xyz[2]));
+            }
         }
+
         showCheckpoints = config.getBoolean("showCheckpoints");
 
         this.getCommand("skywars").setExecutor(this);
@@ -79,13 +82,18 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         } else if (command.getName().equals("parkour") && sender instanceof Player) {
             if (args[0].equals("add")) {
                 Player hrac = (Player) sender;
-                config.set("checkpoints", config.getStringList("checkpoints").add(hrac.getLocation().getX() + ";" + hrac.getLocation().getY() + ";" + hrac.getLocation().getZ()));
+                if (cordsString.equals("")) {
+                    config.set("checkpoints", hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ());
+                } else {
+                    config.set("checkpoints", config.getString("checkpoints") + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ());
+                }
                 saveConfig();
-                cordsList = config.getStringList("checkpoints");
-                checkpoints = new Location[cordsList.size()];
-                for (int i = 0; i < cordsList.size(); i++) {
-                    String[] xyz = ((String) cordsList.get(i)).split(";");
-                    checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Integer.parseInt(xyz[0]),Integer.parseInt(xyz[1]),Integer.parseInt(xyz[2]));
+                cordsString = config.getString("checkpoints");
+                String[] cordsArray = cordsString.split(";");
+                checkpoints = new Location[cordsArray.length];
+                for (int i = 0; i < cordsArray.length; i++) {
+                    String[] xyz = cordsArray[i].split(",");
+                    checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Double.parseDouble(xyz[0]),Double.parseDouble(xyz[1]),Double.parseDouble(xyz[2]));
                 }
 
                 sender.sendPlainMessage("Checkpoint added!");
@@ -102,8 +110,10 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             if (args[0].equals("show")) {
                 if (showCheckpoints) {
                     showCheckpoints = false;
+                    sender.sendPlainMessage("Checkpoints hidden!");
                 } else {
                     showCheckpoints = true;
+                    sender.sendPlainMessage("Checkpoints shown!");
                 }
                 return true;
             }
@@ -181,8 +191,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 0, 255), 0.5F);
                 World world = Bukkit.getWorld("parkour");
                 for (Location location : checkpoints) {
-                    Location cords = location;
-                    cords.add(0,1.5,0);
+                    Location cords = new Location(Bukkit.getWorld("parkour"), location.getX(), location.getY() + 0.5, location.getZ());
                     world.spawnParticle(Particle.REDSTONE, cords, 50, 0.5, 0, 0.5, dustOptions);
                 }
             } else {
