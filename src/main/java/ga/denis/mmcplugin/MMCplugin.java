@@ -25,28 +25,30 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         // Plugin startup logic
         System.out.println("The plugin has started!");
 
-        this.getCommand("zone").setExecutor(this);
+        this.getCommand("skywars").setExecutor(this);
         getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equals("zone")) {
-            if (Integer.parseInt(args[0]) == 0) {
-                zoneOn = false;
-                sender.sendPlainMessage("Zone has been disabled!");
-                return true;
-            } else {
-                zoneSize = Integer.parseInt(args[0]);
-                sender.sendPlainMessage("Zone size has been set to " + zoneSize);
-                zoneOn = true;
+        if (command.getName().equals("skywars")) {
+            if (args[0].equals("zone")) {
+                if (Integer.parseInt(args[1]) == 0) {
+                    zoneOn = false;
+                    sender.sendPlainMessage("Zone has been disabled!");
+                    return true;
+                } else {
+                    zoneSize = Integer.parseInt(args[1]);
+                    sender.sendPlainMessage("Zone size has been set to " + zoneSize);
+                    zoneOn = true;
 
-                Collection<Player> hraci = (Collection<Player>) Bukkit.getOnlinePlayers();
-                for (Player hrac : hraci) {
-                    hit(hrac);
+                    Collection<Player> hraci = (Collection<Player>) Bukkit.getOnlinePlayers();
+                    for (Player hrac : hraci) {
+                        hit(hrac);
+                    }
+
+                    return true;
                 }
-
-                return true;
             }
         }
         return false;

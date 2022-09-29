@@ -5,7 +5,7 @@ api-version: 1.19
 authors: [ DenisOS ]
 description: Main MMC plugin
 commands:
-  zone:
-    description: Changes skywars zone size
-    usage: /<command> [size]
+  skywars:
+    description: Controls skywars minigame
+    usage: /<command> [action] [parameters]
     permission: mmcplugin.use
