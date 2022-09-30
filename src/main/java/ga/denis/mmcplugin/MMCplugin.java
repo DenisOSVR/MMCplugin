@@ -82,19 +82,29 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         } else if (command.getName().equals("parkour") && sender instanceof Player) {
             if (args[0].equals("add")) {
                 Player hrac = (Player) sender;
-                if (cordsString.equals("")) {
+                /*if (cordsString.equals("")) {
                     config.set("checkpoints", hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ());
                 } else {
                     config.set("checkpoints", config.getString("checkpoints") + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ());
+                }*/
+                Location[] cordsArray = new Location[checkpoints.length + 1];
+                for (int i = 0; i < checkpoints.length; i++) {
+                    cordsArray[i] = checkpoints[i];
                 }
+                checkpoints = cordsArray;
+                cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
+                for (int i = 1; i < checkpoints.length; i++) {
+                    cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
+                }
+                config.set("checkpoints", cordsString);
                 saveConfig();
-                cordsString = config.getString("checkpoints");
+                /*cordsString = config.getString("checkpoints");
                 String[] cordsArray = cordsString.split(";");
                 checkpoints = new Location[cordsArray.length];
                 for (int i = 0; i < cordsArray.length; i++) {
                     String[] xyz = cordsArray[i].split(",");
                     checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Double.parseDouble(xyz[0]),Double.parseDouble(xyz[1]),Double.parseDouble(xyz[2]));
-                }
+                }*/
 
                 sender.sendPlainMessage("Checkpoint added!");
                 return true;
