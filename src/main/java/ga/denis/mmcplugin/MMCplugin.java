@@ -96,6 +96,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 for (int i = 1; i < checkpoints.length; i++) {
                     cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
                 }
+                cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
                 config.set("checkpoints", cordsString);
                 saveConfig();
                 /*cordsString = config.getString("checkpoints");
@@ -110,14 +111,14 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 return true;
             }
 
-            if (args[0].equals("list")) {
+            else if (args[0].equals("list")) {
                 for (int i = 0; i < checkpoints.length; i++) {
                     sender.sendPlainMessage("ID: " + i + " X: " + checkpoints[i].getX() + " Y: " + checkpoints[i].getY() + " Z: " + checkpoints[i].getZ());
                 }
                 return true;
             }
 
-            if (args[0].equals("show")) {
+            else if (args[0].equals("show")) {
                 if (showCheckpoints) {
                     showCheckpoints = false;
                     sender.sendPlainMessage("Checkpoints hidden!");
@@ -126,6 +127,20 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     sender.sendPlainMessage("Checkpoints shown!");
                 }
                 return true;
+            }
+
+            else if (args[0].equals("remove")) {
+                if (args[1] == null) {
+                    Player hrac = (Player) sender;
+                    int closest = 0;
+                    for (int i = 1; i < checkpoints.length; i++) {
+
+                    }
+                }
+
+                else {
+
+                }
             }
         }
         return false;
