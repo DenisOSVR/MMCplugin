@@ -29,7 +29,6 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     @Override
     public void onEnable() {
         // Plugin startup logic
-        System.out.println("The plugin has started!");
         config = this.getConfig();
         config.addDefault("zoneSize", 100);
         config.addDefault("zoneOn", false);
@@ -53,6 +52,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
 
         this.getCommand("skywars").setExecutor(this);
         this.getCommand("parkour").setExecutor(this);
+        this.getCommand("ghostblock").setExecutor(this);
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -92,11 +92,12 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     cordsArray[i] = checkpoints[i];
                 }
                 checkpoints = cordsArray;
+                checkpoints[checkpoints.length - 1] = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getX(),hrac.getLocation().getY(),hrac.getLocation().getZ());
                 cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
                 for (int i = 1; i < checkpoints.length; i++) {
                     cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
                 }
-                cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
+                //cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
                 config.set("checkpoints", cordsString);
                 saveConfig();
                 /*cordsString = config.getString("checkpoints");
@@ -130,18 +131,64 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             }
 
             else if (args[0].equals("remove")) {
-                if (args[1] == null) {
+                if (args.length < 2) {
                     Player hrac = (Player) sender;
                     int closest = 0;
+                    byte skip = 0;
                     for (int i = 1; i < checkpoints.length; i++) {
-
+                        if (hrac.getLocation().distance(new Location(Bukkit.getWorld("parkour"),checkpoints[closest].getX(),checkpoints[closest].getY(),checkpoints[closest].getZ())) > hrac.getLocation().distance(new Location(Bukkit.getWorld("parkour"),checkpoints[i].getX(),checkpoints[i].getY(),checkpoints[i].getZ()))) {
+                            closest = i;
+                        }
                     }
+                    Location[] cordsArray = new Location[checkpoints.length - 1];
+                    for (int i = 0; i < cordsArray.length; i++) {
+                        if (i == closest) {
+                            skip = 1;
+                        }
+                        cordsArray[i] = checkpoints[i + skip];
+                    }
+                    checkpoints = cordsArray;
+                    cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
+                    for (int i = 1; i < checkpoints.length; i++) {
+                        cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
+                    }
+                    cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
+                    config.set("checkpoints", cordsString);
+                    saveConfig();
+                    sender.sendPlainMessage("Removed closest checkpoint!");
+                    return true;
                 }
 
                 else {
-
+                    Player hrac = (Player) sender;
+                    byte skip = 0;
+                    int id = Integer.parseInt(args[1]);
+                    Location[] cordsArray = new Location[checkpoints.length - 1];
+                    for (int i = 0; i < cordsArray.length; i++) {
+                        if (i == id) {
+                            skip = 1;
+                        }
+                        cordsArray[i] = checkpoints[i + skip];
+                    }
+                    checkpoints = cordsArray;
+                    cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
+                    for (int i = 1; i < checkpoints.length; i++) {
+                        cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
+                    }
+                    cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
+                    config.set("checkpoints", cordsString);
+                    saveConfig();
+                    sender.sendPlainMessage("Removed checkpoint number " + id +"!");
+                    return true;
                 }
             }
+        } else if (command.getName().equals("ghostblock") && sender instanceof Player) {
+            Player hrac = (Player) sender;
+            Location lokace = hrac.getLocation();
+            lokace.setY(lokace.getY() - 1);
+            hrac.sendBlockChange(hrac.getLocation(), lokace.getBlock().getBlockData());
+            sender.sendPlainMessage("Ghostblock placed :D");
+            return true;
         }
         return false;
     }
@@ -175,12 +222,19 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     }
 
     @EventHandler
-    public void onLeavingZone(PlayerMoveEvent event) {
+    public void onPlayerMove(PlayerMoveEvent event) {
         hit(event.getPlayer());
+        checkpointReached(event.getPlayer());
 //            ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
 //            Scoreboard scoreboard = event.getPlayer().getScoreboard();
 //            Objective objective = scoreboard.getObjective("zone");
 //            Score score = objective.getScore("skywars");
+    }
+
+    public void checkpointReached(Player hrac) {
+        if (hrac.getWorld().getName().equals("skywars")) {
+
+        }
     }
 
     public void hit(Player hrac) {
@@ -216,8 +270,9 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 0, 255), 0.5F);
                 World world = Bukkit.getWorld("parkour");
                 for (Location location : checkpoints) {
-                    Location cords = new Location(Bukkit.getWorld("parkour"), location.getX(), location.getY() + 0.5, location.getZ());
+                    Location cords = new Location(Bukkit.getWorld("parkour"), location.getX(), location.getY() + 1, location.getZ());
                     world.spawnParticle(Particle.REDSTONE, cords, 50, 0.5, 0, 0.5, dustOptions);
+                    world.spawnParticle(Particle.REDSTONE, cords, 50, 0, 1, 0, dustOptions);
                 }
             } else {
                 tickCountParkour++;
