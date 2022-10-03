@@ -1,9 +1,9 @@
 package ga.denis.mmcplugin;
 
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
+import io.papermc.paper.event.packet.PlayerChunkLoadEvent;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.SeaPickle;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -15,8 +15,6 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.metadata.MetadataValue;
-import org.bukkit.metadata.MetadataValueAdapter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collection;
@@ -55,6 +53,8 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 String[] xyz = cordsArray[i].split(",");
                 checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Double.parseDouble(xyz[0]),Double.parseDouble(xyz[1]),Double.parseDouble(xyz[2]));
             }
+        } else {
+            checkpoints = new Location[0];
         }
 
         showCheckpoints = config.getBoolean("showCheckpoints");
@@ -102,12 +102,14 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 }
                 checkpoints = cordsArray;
 
-                Location lokace = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getBlockX(),hrac.getLocation().getBlockY(),hrac.getLocation().getBlockZ());
+                Location lokace = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getBlockX() + 0.5,hrac.getLocation().getBlockY(),hrac.getLocation().getBlockZ() + 0.5);
                 checkpoints[checkpoints.length - 1] = lokace;
-                lokace.getBlock().setType(Material.SEA_PICKLE);
-                SeaPickle blockData = (SeaPickle) lokace.getBlock().getBlockData();
-                blockData.setPickles(3);
-                lokace.getBlock().setBlockData(blockData);
+
+//                lokace.getBlock().setType(Material.SEA_PICKLE);
+//                SeaPickle blockData = (SeaPickle) lokace.getBlock().getBlockData();
+//                blockData.setPickles(3);
+//                lokace.getBlock().setBlockData(blockData);
+
                 //lokace.getBlock().setBlockData(lokace.getBlock().getBlockData());
                 cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
                 for (int i = 1; i < checkpoints.length; i++) {
@@ -125,6 +127,10 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 }*/
 
                 sender.sendPlainMessage("Checkpoint added!");
+                Collection<Player> hraci = (Collection<Player>) Bukkit.getOnlinePlayers();
+                for (Player player : hraci) {
+                    generateHashmap(player);
+                }
                 return true;
             }
 
@@ -132,6 +138,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 for (int i = 0; i < checkpoints.length; i++) {
                     sender.sendPlainMessage("ID: " + i + " X: " + checkpoints[i].getX() + " Y: " + checkpoints[i].getY() + " Z: " + checkpoints[i].getZ());
                 }
+                generateHashmap((Player) sender);
                 return true;
             }
 
@@ -164,14 +171,20 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                         cordsArray[i] = checkpoints[i + skip];
                     }
                     checkpoints = cordsArray;
-                    cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
+                    if (checkpoints.length > 0) {
+                        cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
+                    }
                     for (int i = 1; i < checkpoints.length; i++) {
                         cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
                     }
-                    cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
+                    //xxxcordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
                     config.set("checkpoints", cordsString);
                     saveConfig();
                     sender.sendPlainMessage("Removed closest checkpoint!");
+                    Collection<Player> hraci = (Collection<Player>) Bukkit.getOnlinePlayers();
+                    for (Player player : hraci) {
+                        generateHashmap(player);
+                    }
                     return true;
                 }
 
@@ -191,7 +204,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     for (int i = 1; i < checkpoints.length; i++) {
                         cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
                     }
-                    cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
+                    //xxxcordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
                     config.set("checkpoints", cordsString);
                     saveConfig();
                     sender.sendPlainMessage("Removed checkpoint number " + id +"!");
@@ -226,6 +239,35 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 pointArray[i] = true;
             }
             checkMap.put(player.getName() + "Checkpoints", pointArray);
+        }
+        if (player.getWorld().getName().equals("parkour")) {
+            boolean[] pointArray = checkMap.get(player.getName() + "Checkpoints");
+            if (!(pointArray.length == checkpoints.length)) {
+                pointArray = new boolean[checkpoints.length];
+                for (int i = 0; i < checkpoints.length; i++) {
+                    pointArray[i] = true;
+                }
+                checkMap.put(player.getName() + "Checkpoints", pointArray);
+            }
+            BlockData blockData = new Location(Bukkit.getWorld("parkour"),0,0 ,0).getBlock().getBlockData();
+            for (int i = 0; i < checkpoints.length; i++) {
+                if (pointArray[i]) {
+                    //player.sendPlainMessage("setting blocks");
+                    player.sendBlockChange(new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ()), blockData);
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerChunkLoad(PlayerChunkLoadEvent event) {
+        Player player = event.getPlayer();
+        BlockData blockData = new Location(Bukkit.getWorld("parkour"),0,0 ,0).getBlock().getBlockData();
+        for (int i = 0; i < checkMap.get(player.getName() + "Checkpoints").length; i++) {
+            if (checkMap.get(player.getName() + "Checkpoints")[i]) {
+                //player.sendPlainMessage("setting blocks");
+                player.sendBlockChange(new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ()), blockData);
+            }
         }
     }
 
@@ -272,7 +314,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             for (int i = 0; i < checkpoints.length; i++) {
                 Location lokace = new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ());
                 if (lokace.distance(hrac.getLocation()) < 1.5) {
-
+                    hrac.sendPlainMessage("checkpoint");
                 }
             }
         }
