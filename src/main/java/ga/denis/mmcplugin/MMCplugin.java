@@ -2,6 +2,8 @@ package ga.denis.mmcplugin;
 
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import org.bukkit.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.SeaPickle;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,6 +13,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.metadata.MetadataValue;
+import org.bukkit.metadata.MetadataValueAdapter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collection;
@@ -92,7 +96,14 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     cordsArray[i] = checkpoints[i];
                 }
                 checkpoints = cordsArray;
-                checkpoints[checkpoints.length - 1] = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getX(),hrac.getLocation().getY(),hrac.getLocation().getZ());
+
+                Location lokace = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getBlockX(),hrac.getLocation().getBlockY(),hrac.getLocation().getBlockZ());
+                checkpoints[checkpoints.length - 1] = lokace;
+                lokace.getBlock().setType(Material.SEA_PICKLE);
+                SeaPickle blockData = (SeaPickle) lokace.getBlock().getBlockData();
+                blockData.setPickles(3);
+                lokace.getBlock().setBlockData(blockData);
+                //lokace.getBlock().setBlockData(lokace.getBlock().getBlockData());
                 cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
                 for (int i = 1; i < checkpoints.length; i++) {
                     cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
@@ -232,8 +243,13 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     }
 
     public void checkpointReached(Player hrac) {
-        if (hrac.getWorld().getName().equals("skywars")) {
+        if (hrac.getWorld().getName().equals("parkour")) {
+            for (int i = 0; i < checkpoints.length; i++) {
+                Location lokace = new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ());
+                if (lokace.distance(hrac.getLocation()) < 1.5) {
 
+                }
+            }
         }
     }
 
