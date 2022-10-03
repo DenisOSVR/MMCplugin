@@ -12,12 +12,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.metadata.MetadataValueAdapter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 public final class MMCplugin extends JavaPlugin implements Listener, CommandExecutor {
 
@@ -29,6 +32,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     Location[] checkpoints;
     boolean showCheckpoints;
     String cordsString;
+    HashMap<String,boolean[]> checkMap;
 
     @Override
     public void onEnable() {
@@ -43,6 +47,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         zoneOn = config.getBoolean("zoneOn");
         zoneSize = config.getInt("zoneSize");
         cordsString = config.getString("checkpoints");
+        checkMap = new HashMap<>();
         if (!cordsString.equals("")) {
             String[] cordsArray = cordsString.split(";");
             checkpoints = new Location[cordsArray.length];
@@ -202,6 +207,26 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             return true;
         }
         return false;
+    }
+
+    @EventHandler
+    public void join(PlayerJoinEvent event) {
+        generateHashmap(event.getPlayer());
+    }
+
+    @EventHandler
+    public void changeWorld(PlayerChangedWorldEvent event) {
+        generateHashmap(event.getPlayer());
+    }
+
+    public void generateHashmap(Player player) {
+        if (!checkMap.containsKey(player.getName() + "Checkpoints")) {
+            boolean[] pointArray = new boolean[checkpoints.length];
+            for (int i = 0; i < checkpoints.length; i++) {
+                pointArray[i] = true;
+            }
+            checkMap.put(player.getName() + "Checkpoints", pointArray);
+        }
     }
 
     public void zone() {
