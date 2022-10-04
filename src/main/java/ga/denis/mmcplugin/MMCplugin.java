@@ -64,7 +64,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             checkpoints = new Location[cordsArray.length];
             for (int i = 0; i < cordsArray.length; i++) {
                 String[] xyz = cordsArray[i].split(",");
-                checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Double.parseDouble(xyz[0]),Double.parseDouble(xyz[1]),Double.parseDouble(xyz[2]));
+                checkpoints[i] = new Location(Bukkit.getWorld("parkour"),Double.parseDouble(xyz[0]),Double.parseDouble(xyz[1]),Double.parseDouble(xyz[2]), Float.parseFloat(xyz[3]), Float.parseFloat(xyz[4]));
             }
         } else {
             checkpoints = new Location[0];
@@ -115,7 +115,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 }
                 checkpoints = cordsArray;
 
-                Location lokace = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getBlockX() + 0.5,hrac.getLocation().getBlockY(),hrac.getLocation().getBlockZ() + 0.5);
+                Location lokace = new Location(Bukkit.getWorld("parkour"),hrac.getLocation().getBlockX() + 0.5,hrac.getLocation().getBlockY(),hrac.getLocation().getBlockZ() + 0.5, hrac.getLocation().getYaw(), hrac.getLocation().getPitch());
                 checkpoints[checkpoints.length - 1] = lokace;
 
 //                lokace.getBlock().setType(Material.SEA_PICKLE);
@@ -124,9 +124,9 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
 //                lokace.getBlock().setBlockData(blockData);
 
                 //lokace.getBlock().setBlockData(lokace.getBlock().getBlockData());
-                cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ();
+                cordsString = checkpoints[0].getX() + "," + checkpoints[0].getY() + "," + checkpoints[0].getZ() + "," + checkpoints[0].getYaw() + "," + checkpoints[0].getPitch();
                 for (int i = 1; i < checkpoints.length; i++) {
-                    cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ();
+                    cordsString = cordsString + ";" + checkpoints[i].getX() + "," + checkpoints[i].getY() + "," + checkpoints[i].getZ() + "," + checkpoints[i].getYaw() + "," + checkpoints[i].getPitch();
                 }
                 //cordsString = cordsString + ";" + hrac.getLocation().getX() + "," + hrac.getLocation().getY() + "," + hrac.getLocation().getZ();
                 config.set("checkpoints", cordsString);
@@ -227,16 +227,19 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                 if (args.length < 2) {
                     if (parkourTPBallowed) {
                         parkourTPBallowed = false;
+                        config.set("parkourTPBallowed", false);
                         sender.sendPlainMessage("Parkour teleport back disabled!");
                     }
                     else {
                         parkourTPBallowed = true;
+                        config.set("parkourTPBallowed", true);
                         sender.sendPlainMessage("Parkour teleport back enabled!");
                     }
                     return true;
                 } else {
                     parkourTPBvalue = Integer.parseInt(args[1]);
                     sender.sendPlainMessage("Parkour teleport back value set to: " + parkourTPBvalue);
+                    config.set("parkourTPBvalue", parkourTPBvalue);
                     return true;
                 }
             } else if (args[0].equals("reset")) {
@@ -358,7 +361,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
 
     public void parkourTPB(Player player) {
         if (parkourTPBallowed && player.getLocation().getBlockY() < parkourTPBvalue) {
-            player.setVelocity(new Vector(0,0,0));
+            //player.setVelocity(new Vector(0,0,0));
             player.teleport(parkourRespawnMap.get(player.getName() + "ParkourRespawn"));
         }
     }
@@ -366,7 +369,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     public void checkpointReached(Player hrac) {
         if (hrac.getWorld().getName().equals("parkour")) {
             for (int i = 0; i < checkpoints.length; i++) {
-                Location lokace = new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ());
+                Location lokace = new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ(), checkpoints[i].getYaw(), checkpoints[i].getPitch());
                 boolean[] cords = checkMap.get(hrac.getName() + "Checkpoints");
                 if (lokace.distance(hrac.getLocation()) < 1.5) {
                     if (cords[i]) {
@@ -388,7 +391,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     }
 
     @EventHandler
-    public void noFireworkDmg (EntityDamageByEntityEvent event) {
+    public void noFireworkDmg(EntityDamageByEntityEvent event) {
         if (event.getEntity().getWorld().getName().equals("parkour") && event.getDamager() instanceof Firework) {
             event.setCancelled(true);
         }
@@ -445,7 +448,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     }
 
     @EventHandler
-    public void onPlayerDeath (PlayerDeathEvent event) {
+    public void onPlayerDeath(PlayerDeathEvent event) {
         if (event.getPlayer().getScoreboardTags().contains("hit")) {
             event.getPlayer().removeScoreboardTag("hit");
         }
