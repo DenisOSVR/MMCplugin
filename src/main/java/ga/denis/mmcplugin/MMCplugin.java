@@ -8,14 +8,19 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,6 +36,9 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     boolean showCheckpoints;
     String cordsString;
     HashMap<String,boolean[]> checkMap;
+    HashMap<String,Location> parkourRespawnMap;
+    int parkourTPBvalue;
+    boolean parkourTPBallowed;
 
     @Override
     public void onEnable() {
@@ -40,12 +48,17 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         config.addDefault("zoneOn", false);
         config.addDefault("checkpoints", "");
         config.addDefault("showCheckpoints", false);
-        config.options().copyDefaults(true);
+        config.addDefault("parkourTPBvalue", 0);
+        config.addDefault("parkourTPBallowed", false);
+        //config.options().copyDefaults(true);
         saveDefaultConfig();
         zoneOn = config.getBoolean("zoneOn");
         zoneSize = config.getInt("zoneSize");
         cordsString = config.getString("checkpoints");
+        parkourTPBvalue = config.getInt("parkourTPBvalue");
+        parkourTPBallowed = config.getBoolean("parkourTPBallowed");
         checkMap = new HashMap<>();
+        parkourRespawnMap = new HashMap<>();
         if (!cordsString.equals("")) {
             String[] cordsArray = cordsString.split(";");
             checkpoints = new Location[cordsArray.length];
@@ -210,6 +223,31 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
                     sender.sendPlainMessage("Removed checkpoint number " + id +"!");
                     return true;
                 }
+            } else if (args[0].equals("tp")) {
+                if (args.length < 2) {
+                    if (parkourTPBallowed) {
+                        parkourTPBallowed = false;
+                        sender.sendPlainMessage("Parkour teleport back disabled!");
+                    }
+                    else {
+                        parkourTPBallowed = true;
+                        sender.sendPlainMessage("Parkour teleport back enabled!");
+                    }
+                    return true;
+                } else {
+                    parkourTPBvalue = Integer.parseInt(args[1]);
+                    sender.sendPlainMessage("Parkour teleport back value set to: " + parkourTPBvalue);
+                    return true;
+                }
+            } else if (args[0].equals("reset")) {
+                boolean[] pointArray = new boolean[checkpoints.length];
+                for (int i = 0; i < checkpoints.length; i++) {
+                    pointArray[i] = true;
+                }
+                checkMap.put(sender.getName() + "Checkpoints", pointArray);
+                parkourRespawnMap.put(sender.getName() + "ParkourRespawn", new Location(Bukkit.getWorld("parkour"),0,52,0));
+                sender.sendPlainMessage("Checkpoints reset!");
+                return true;
             }
         } else if (command.getName().equals("ghostblock") && sender instanceof Player) {
             Player hrac = (Player) sender;
@@ -225,11 +263,19 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     @EventHandler
     public void join(PlayerJoinEvent event) {
         generateHashmap(event.getPlayer());
+        generateRespawnMap(event.getPlayer());
     }
 
     @EventHandler
     public void changeWorld(PlayerChangedWorldEvent event) {
         generateHashmap(event.getPlayer());
+        generateRespawnMap(event.getPlayer());
+    }
+
+    public void generateRespawnMap(Player player) {
+        if (player.getWorld().getName().equals("parkour") && !parkourRespawnMap.containsKey(player.getName() + "ParkourRespawn")) {
+            parkourRespawnMap.put(player.getName() + "ParkourRespawn", new Location(Bukkit.getWorld("parkour"),0,52,0));
+        }
     }
 
     public void generateHashmap(Player player) {
@@ -303,20 +349,48 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
     public void onPlayerMove(PlayerMoveEvent event) {
         hit(event.getPlayer());
         checkpointReached(event.getPlayer());
+        parkourTPB(event.getPlayer());
 //            ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
 //            Scoreboard scoreboard = event.getPlayer().getScoreboard();
 //            Objective objective = scoreboard.getObjective("zone");
 //            Score score = objective.getScore("skywars");
     }
 
+    public void parkourTPB(Player player) {
+        if (parkourTPBallowed && player.getLocation().getBlockY() < parkourTPBvalue) {
+            player.setVelocity(new Vector(0,0,0));
+            player.teleport(parkourRespawnMap.get(player.getName() + "ParkourRespawn"));
+        }
+    }
+
     public void checkpointReached(Player hrac) {
         if (hrac.getWorld().getName().equals("parkour")) {
             for (int i = 0; i < checkpoints.length; i++) {
                 Location lokace = new Location(Bukkit.getWorld("parkour"), checkpoints[i].getX(), checkpoints[i].getY(), checkpoints[i].getZ());
+                boolean[] cords = checkMap.get(hrac.getName() + "Checkpoints");
                 if (lokace.distance(hrac.getLocation()) < 1.5) {
-                    hrac.sendPlainMessage("checkpoint");
+                    if (cords[i]) {
+                        hrac.sendPlainMessage("checkpoint");
+                        parkourRespawnMap.put(hrac.getName() + "ParkourRespawn", lokace);
+                        cords[i] = false;
+                        checkMap.put(hrac.getName() + "Checkpoints", cords);
+                        hrac.playSound(hrac.getLocation(), Sound.BLOCK_GLASS_FALL, 1f, 1f);
+                        Firework fw = hrac.getWorld().spawn(lokace, Firework.class);
+                        FireworkMeta fm = fw.getFireworkMeta();
+                        fm.addEffect(FireworkEffect.builder().withColor(Color.YELLOW).build());
+                        fw.setFireworkMeta(fm);
+                        fw.detonate();
+                        hrac.sendBlockChange(lokace, hrac.getWorld().getBlockData(new Location(hrac.getWorld(), lokace.getX(), lokace.getY() + 1,lokace.getZ())));
+                    }
                 }
             }
+        }
+    }
+
+    @EventHandler
+    public void noFireworkDmg (EntityDamageByEntityEvent event) {
+        if (event.getEntity().getWorld().getName().equals("parkour") && event.getDamager() instanceof Firework) {
+            event.setCancelled(true);
         }
     }
 
@@ -327,6 +401,13 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             } else if (hrac.getScoreboardTags().contains("hit")) {
                 hrac.removeScoreboardTag("hit");
             }
+        }
+    }
+
+    @EventHandler
+    public void parkourFallDamage(EntityDamageEvent event) {
+        if (event.getEntity().getWorld().getName().equals("parkour") && event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            event.setCancelled(true);
         }
     }
 
