@@ -3,6 +3,8 @@ package ga.denis.mmcplugin;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.papermc.paper.event.packet.PlayerChunkLoadEvent;
 import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -12,6 +14,7 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -22,6 +25,7 @@ import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -75,6 +79,7 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
         this.getCommand("skywars").setExecutor(this);
         this.getCommand("parkour").setExecutor(this);
         this.getCommand("ghostblock").setExecutor(this);
+        this.getCommand("piston").setExecutor(this);
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -258,6 +263,17 @@ public final class MMCplugin extends JavaPlugin implements Listener, CommandExec
             lokace.setY(lokace.getY() - 1);
             hrac.sendBlockChange(hrac.getLocation(), lokace.getBlock().getBlockData());
             sender.sendPlainMessage("Ghostblock placed :D");
+            return true;
+        } else if (command.getName().equals("piston") && sender instanceof Player) {
+            Player hrac = (Player) sender;
+            Location lokace = hrac.getLocation();
+            lokace.setY(lokace.getY() - 1);
+            Location piston = lokace;
+            piston.setY(lokace.getY() - 1);
+            ArrayList<Block> bloky = new ArrayList<>();
+            bloky.add(lokace.getBlock());
+            Bukkit.getServer().getPluginManager().callEvent(new BlockPistonExtendEvent(piston.getBlock(), bloky, BlockFace.UP));
+            hrac.sendPlainMessage("Block pistoned :D");
             return true;
         }
         return false;

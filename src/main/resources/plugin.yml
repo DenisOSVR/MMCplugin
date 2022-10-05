@@ -17,3 +17,7 @@ commands:
     description: Places a ghost block to your location
     usage: /<command>
     permission: mmcplugin.use
+  piston:
+    description: Moves the block below you upwards
+    usage: /<command>
+    permission: mmcplugin.use
